@@ -1,3 +1,5 @@
+extensions [Nw]
+
 breed [nodes node]
 breed [vacuums vacuum]
 breed [bases base]
@@ -8,8 +10,9 @@ patches-own [
 ]
 
 nodes-own [Ncleaning]
-vacuums-own[location]
+vacuums-own[location locations]
 bases-own[location]
+globals[path-to-base]
 
 to setup
   clear-all
@@ -48,26 +51,90 @@ end
 
 to setup-room
   ask n-of number_of_obstacles patches [set obstacle 1]
-  ask patches with [obstacle = 0] [set dust random 10]
+  ask patches with [obstacle = 0] [set dust 0] ;random 10
   ask patches with [obstacle = 1] [set pcolor grey]
 end
 
+
+
 to Go
 
-  if ticks = max-pxcor * max-pycor * 4 * 100 [stop]
+  ;if ticks = max-pxcor * max-pycor * 4 * 100 [stop]
 
-  ; select the moving function from the user choice
-  if moving-function = "move-randomly-or-stay" [
-    ask vacuums [move-randomly-or-stay]
-  ]
-    if moving-function = "move-randomly" [
-    ask vacuums [move-randomly]
-  ]
-   if moving-function = "move-fd-or-left" [
-    ask vacuums [move-fd-or-left]
+  if ticks = 2400 [stop] ; fixing the max autonomus to 2400 ticks, if the vacumm does not reach the base before the model is stoped
+  ifelse ticks > 2200
+  [ask vacuums [return-to-base]] ; fixing the time to stop cleaning and return to the base
+  [
+    ; select the moving function from the user choice
+    if moving-function = "move-randomly-2" [
+      ask vacuums [move-randomly-2]
+    ]
+      if moving-function = "move-randomly" [
+      ask vacuums [move-randomly]
+    ]
   ]
   tick
 end
+
+
+
+to move-randomly-2
+  ;show patches in-radius 1.8 with [obstacle = 0]
+  ;show nodes-here
+  ;ask patches in-radius 1.8 with [obstacle = 0] [show nodes-here]
+
+  set locations (patch-set)
+
+  let nl1 patches at-points [[1 1]]
+  if not any? nodes-on nl1 [set locations (patch-set locations nl1) ]
+
+  let nl2 patches at-points [[1 0]]
+  if not any? nodes-on nl2 [set locations (patch-set locations nl2) ]
+
+  let nl3 patches at-points [[0 1]]
+  if not any? nodes-on nl3 [set locations (patch-set locations nl3) ]
+
+  let nl4 patches at-points [[1 -1]]
+  if not any? nodes-on nl4 [set locations (patch-set locations nl4) ]
+
+  let nl5 patches at-points [[-1 1]]
+  if not any? nodes-on nl5 [set locations (patch-set locations nl5) ]
+
+  let nl6 patches at-points [[0 -1]]
+  if not any? nodes-on nl6 [set locations (patch-set locations nl6) ]
+
+  let nl7 patches at-points [[-1 0]]
+  if not any? nodes-on nl7 [set locations (patch-set locations nl7) ]
+
+  let nl8 patches at-points [[-1 -1]]
+  if not any? nodes-on nl8 [set locations (patch-set locations nl8) ]
+
+
+
+  ifelse count locations with [obstacle = 0] > 0
+  [
+    let new-location one-of locations with [obstacle = 0]
+    face new-location
+    move-to new-location
+  ]
+  [
+    let new-location one-of patches at-points [
+      [1 1]
+      [1 0]
+      [0 1]
+      [1 -1]
+      [-1 1]
+      [0 -1]
+      [-1 0]
+      [-1 -1]
+    ] with [obstacle = 0]
+    face new-location
+    move-to new-location
+  ]
+
+  maping-room
+end
+
 
 
 to move-randomly
@@ -83,7 +150,6 @@ to move-randomly
   ] with [obstacle = 0]
   face new-location
   move-to new-location
-  clean
   maping-room
 end
 
@@ -101,6 +167,9 @@ to maping-room
     ]]
     setup-network]
 
+  ;
+  ask nodes in-radius 0 [set Ncleaning Ncleaning + 1]
+
   ;save the duste state of all place visited by the vacuum
   ask nodes at-points [[0 0]] [
     if dust = 0 [set color green]
@@ -109,12 +178,18 @@ end
 
 
 to clean
-  ask nodes in-radius 0 [set Ncleaning Ncleaning + 1]
+
   ask patches in-radius 0 [
     if dust > 0 [set dust dust - 1]
   ]
 end
 
+to return-to-base
+  ask nodes at-points [[0 0]] [set path-to-base nw:turtles-on-path-to one-of bases]
+  face item 1 path-to-base
+  move-to item 1 path-to-base
+  if length path-to-base < 3  [ print "rentré à la base"  ]
+end
 
 
 
@@ -134,6 +209,13 @@ ask nodes
     [ create-link-with myself
     ]
   ]
+
+  ask nodes
+  [ ask other bases in-radius 1.5
+    [ create-link-with myself
+    ]
+  ]
+
 end
 
 
@@ -162,8 +244,6 @@ to move-fd-or-left
   clean
   set location new-location
 end
-
-
 
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -219,7 +299,7 @@ number_of_obstacles
 number_of_obstacles
 0
 max-pxcor * max-pycor * 2
-51.0
+99.0
 1
 1
 NIL
@@ -268,8 +348,8 @@ CHOOSER
 140
 moving-function
 moving-function
-"move-randomly" "move-randomly-or-stay" "move-fd-or-left"
-0
+"move-randomly" "move-randomly-2"
+1
 
 BUTTON
 11
