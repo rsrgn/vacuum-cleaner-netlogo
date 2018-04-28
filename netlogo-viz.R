@@ -70,7 +70,12 @@ p4 <- ggplot(df[df$moving.function==unique(df$moving.function)[1],], aes(x=ploto
 p4 <- p4 + geom_point() + theme(legend.position = "none")
 p4 <- p4 + facet_grid(  number_of_obstacles ~ moving.function)
 p4 <- p4 + theme(axis.text.x=element_blank(),
-                 axis.ticks.x=element_blank())
+                 axis.ticks.x=element_blank(),
+                 axis.title.x=element_blank(),
+                 axis.text.y=element_blank(), 
+                 axis.ticks.y=element_blank(),
+                 axis.title.y=element_blank(),
+                 strip.text.y=element_blank())
 
 
 
@@ -79,21 +84,31 @@ p5 <- ggplot(df[df$moving.function==unique(df$moving.function)[2],], aes(x=ploto
 p5 <- p5 + geom_point() 
 p5 <- p5 + facet_grid(  number_of_obstacles ~ moving.function)
 p5 <- p5 + theme(axis.text.x=element_blank(),
-                 axis.ticks.x=element_blank())
+                 axis.ticks.x=element_blank(),
+                 axis.title.x=element_blank(),
+                 axis.text.y=element_blank(), 
+                 axis.ticks.y=element_blank(),
+                 axis.title.y=element_blank())
 
 
 p6 <- ggplot(df[df$moving.function==unique(df$moving.function)[1],], aes(x=plotorder, y=CleanRate))
 p6 <- p6 + geom_boxplot() + theme(legend.position = "none")
 p6 <- p6 + facet_grid(  number_of_obstacles ~ moving.function)
 p6 <- p6 + theme(axis.text.x=element_blank(),
-                 axis.ticks.x=element_blank())
+                 axis.ticks.x=element_blank(),
+                 axis.title.x=element_blank(),
+                 strip.text.y=element_blank())
 
 
 
 p7 <- ggplot(df[df$moving.function==unique(df$moving.function)[2],], aes(x=plotorder, y=CleanRate))
 p7 <- p7 + geom_boxplot() + theme(legend.position = "none")
 p7 <- p7 + facet_grid(  number_of_obstacles ~ moving.function)
-p7 <- p7 + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+p7 <- p7 + theme(axis.text.x=element_blank(), 
+                 axis.ticks.x=element_blank(),
+                 axis.title.x=element_blank(),
+                 axis.title.y=element_blank(),
+                 strip.text.y=element_blank())
 
 
-grid.arrange(p6, p4, p7, p5, nrow = 1 , widths = c(1, 4, 1, 5))
+grid.arrange(p6, p4, p7, p5, nrow = 1 , widths = c(1, 2, 1, 2.5))
