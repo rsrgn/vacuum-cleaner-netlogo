@@ -24,6 +24,7 @@ end
 
 
 to setup-base
+  ;charge station for the vacuum cleaner
   create-bases 1 [
     set color green
     set size 1
@@ -45,6 +46,7 @@ to setup-vacuum
 end
 
 to setup-room
+  ; create the walls and a fixed number of obstacle (defined by number_of_obstacles)
   ask patches with [ pxcor = max-pxcor ] [set obstacle 1]
   ask patches with [ (-(pxcor)) = max-pxcor ] [set obstacle 1]
   ask patches with [ pycor = max-pycor ] [set obstacle 1]
@@ -53,7 +55,6 @@ to setup-room
   ask patches with [obstacle = 0] [set dust 0] ;random 10
   ask patches with [obstacle = 1] [set pcolor grey]
 end
-
 
 
 to Go
@@ -70,8 +71,8 @@ to Go
       ask vacuums [move-randomly]
       tick
     ]
-     if moving-function = "algo" [
-      ask vacuums [algo]
+     if moving-function = "move-spiral" [
+      ask vacuums [move-spiral]
 
       ifelse test1 != 0 [tick-advance test1 tick]  [tick-advance test2 tick]
     ]
@@ -84,9 +85,8 @@ to Go
 end
 
 
-
 to move-randomly-2
-
+  ; check if any neighbours have already been visited
   set locations (patch-set)
 
   let nl1 patches at-points [[1 1]]
@@ -113,33 +113,24 @@ to move-randomly-2
   let nl8 patches at-points [[-1 -1]]
   if not any? nodes-on nl8 [set locations (patch-set locations nl8) ]
 
+  ; if all the neighbours have been visited, use function "move_randomly" then map the room
   ifelse count locations with [obstacle = 0] > 0
   [
     let new-location one-of locations with [obstacle = 0]
     face new-location
     move-to new-location
+    maping-room
   ]
   [
-    let new-location one-of patches at-points [
-      [1 1]
-      [1 0]
-      [0 1]
-      [1 -1]
-      [-1 1]
-      [0 -1]
-      [-1 0]
-      [-1 -1]
-    ] with [obstacle = 0]
-    face new-location
-    move-to new-location
+    move-randomly
+    maping-room
   ]
-
-  maping-room
 end
 
 
 
 to move-randomly
+  ; check the non-obstacle neighbours and move the vacuum cleaner to one of those neighbours
   let new-location one-of patches at-points [
     [1 1]
     [1 0]
@@ -157,7 +148,6 @@ end
 
 
 to maping-room
-
   ;create node and connect it to the neigborhouds nodes to create a network whith the place visited by the vacuum
   if one-of nodes at-points [[0 0]] = nobody [
     ask one-of patches at-points [[0 0]] [sprout-nodes 1 [
@@ -179,12 +169,14 @@ end
 
 
 to clean
+  ;unused function since we set the dust to 1 and not a random number (can be used for improvement of the model)
   ask patches in-radius 0 [
     if dust > 0 [set dust dust - 1]
   ]
 end
 
 to return-to-base
+  ; with the use of the package network, we move the turtle to the charge station using the shortest path
   ask nodes at-points [[0 0]] [set path-to-base nw:turtles-on-path-to one-of bases]
   face item 1 path-to-base
   move-to item 1 path-to-base
@@ -192,51 +184,54 @@ to return-to-base
 end
 
 
-
 to setup-nodes
+  ; create nodes
   set-default-shape turtles "circle"
   ask patches [ sprout-nodes 1 [ set color blue ] ]
   ask nodes [set size 0.3]
 end
 
 to setup-network
+  ;connect the nodes
 ask nodes
   [ ask other nodes in-radius 1.5
     [ create-link-with myself
     ]
   ]
-
+  ;connect the base to the network of nodes
   ask nodes
   [ ask other bases in-radius 1.5
     [ create-link-with myself
     ]
   ]
-
-end
-
-
-
-to algo
-  ifelse all? neighbors [ obstacle = 0 ]
- [ move-spiral
-   move-randomly-2
-    maping-room
-  set test1 5]
-  [ walk
- move-randomly-2
-   set test2 11]
-
 end
 
 
 to move-spiral
+  ; move the turtle around a square and then randomly if there's no obstacle
+  ifelse all? neighbors [ obstacle = 0 ]
+  [
+    move-spinning
+    move-randomly-2
+    maping-room
+    set test1 5
+  ]
+  [
+    repeat 10 [walk]
+    move-randomly-2
+    set test2 11
+  ]
+end
+
+
+to move-spinning
   set heading 0
-  repeat 4 [
+  repeat 4
+  [
     rt 90
     fd 1
     maping-room
   ]
-
 end
 
 to walk  ;; turtle procedure
@@ -359,7 +354,7 @@ CHOOSER
 142
 moving-function
 moving-function
-"move-randomly" "move-randomly-2" "algo"
+"move-randomly" "move-randomly-2" "move-spiral"
 2
 
 BUTTON
@@ -393,39 +388,43 @@ count nodes / count patches with [obstacle = 0]
 @#$#@#$#@
 ## WHAT IS IT?
 
-(a general understanding of what the model is trying to show or explain)
+This model simulates a vacuum cleaner robot whose task is to clean the floor of a room. The user can choose the number of obstacle (the size of the obstacle is the same as a patch). 
 
 ## HOW IT WORKS
 
-(what rules the agents use to create the overall behavior of the model)
+The model implements 3 differents behaviours : move randomly, move randomly 2 which avoids a path already discovered and an algorithm which is inspired by https://electronics.howstuffworks.com/gadgets/home/robotic-vacuum2.htm.
 
 ## HOW TO USE IT
 
-(how to use the model, including a description of each of the items in the Interface tab)
+You setup the room, you press go and voilà.
 
 ## THINGS TO NOTICE
 
-(suggested things for the user to notice while running the model)
+We put a limit of 2400 ticks which correspond to the average battery life of one run of the vacuum cleaner.
 
 ## THINGS TO TRY
 
-(suggested things for the user to try to do (move sliders, switches, etc.) with the model)
+Change the algorithms or move the obstacle's slider.
 
 ## EXTENDING THE MODEL
 
-(suggested things to add or change in the Code tab to make the model more complicated, detailed, accurate, etc.)
+Set a random number of dust in the room or change the speed of the vacuum cleaner or use a model where the vacuum cleaner can carry a limited amount of dust and has to return the base. You can also create a more realistic obstacle model.
 
 ## NETLOGO FEATURES
 
-(interesting or unusual features of NetLogo that the model uses, particularly in the Code tab; or where workarounds were needed for missing features)
+The usage of the extension Network which allowed us to create the graph and the usage of the command patch-ahead.
 
 ## RELATED MODELS
 
-(models in the NetLogo Models Library and elsewhere which are of related interest)
+http://files.bookboon.com/ai/Vacuum-Cleaner-Robot.html
+http://ccl.northwestern.edu/netlogo/models/WallFollowingExample
+
 
 ## CREDITS AND REFERENCES
 
-(a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
+This model was created by Raphaël SEROUGNE, Léa LONGO, Kadir KARAKUS and William NGAUV.
+https://electronics.howstuffworks.com/gadgets/home/robotic-vacuum2.htm
+https://github.com/rsrgn/vacuum-cleaner-netlogo
 @#$#@#$#@
 default
 true
@@ -756,13 +755,14 @@ NetLogo 6.0.2
     </enumeratedValueSet>
     <steppedValueSet variable="number_of_obstacles" first="0" step="25" last="150"/>
   </experiment>
-  <experiment name="experiment" repetitions="10" runMetricsEveryStep="false">
+  <experiment name="experiment" repetitions="100" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <metric>count nodes / count patches with [obstacle = 0]</metric>
     <enumeratedValueSet variable="moving-function">
       <value value="&quot;move-randomly&quot;"/>
       <value value="&quot;move-randomly-2&quot;"/>
+      <value value="&quot;move-spiral&quot;"/>
     </enumeratedValueSet>
     <steppedValueSet variable="number_of_obstacles" first="0" step="50" last="150"/>
   </experiment>
