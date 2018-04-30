@@ -12,21 +12,16 @@ patches-own [
 nodes-own [Ncleaning]
 vacuums-own[location locations]
 bases-own[location]
-globals[path-to-base]
+globals[path-to-base test1 test2]
 
 to setup
   clear-all
   setup-room
   setup-base
   setup-vacuum
-
-  ;setup-nodes
-  ;setup-network
-  ;ask n-of number_of_obstacles turtles [ die ]
-  ;ask links [ set color white ]
-
   reset-ticks
 end
+
 
 to setup-base
   create-bases 1 [
@@ -50,6 +45,10 @@ to setup-vacuum
 end
 
 to setup-room
+  ask patches with [ pxcor = max-pxcor ] [set obstacle 1]
+  ask patches with [ (-(pxcor)) = max-pxcor ] [set obstacle 1]
+  ask patches with [ pycor = max-pycor ] [set obstacle 1]
+  ask patches with [ (-(pycor)) = max-pycor ] [set obstacle 1]
   ask n-of number_of_obstacles patches [set obstacle 1]
   ask patches with [obstacle = 0] [set dust 0] ;random 10
   ask patches with [obstacle = 1] [set pcolor grey]
@@ -58,30 +57,35 @@ end
 
 
 to Go
-
-  ;if ticks = max-pxcor * max-pycor * 4 * 100 [stop]
-
-  if ticks = 2400 [stop] ; fixing the max autonomus to 2400 ticks, if the vacumm does not reach the base before the model is stoped
+  if ticks > 2400 [stop] ; fixing the max autonomus to 2400 ticks, if the vacumm does not reach the base before the model is stoped
   ifelse ticks > 2200
-  [ask vacuums [return-to-base]] ; fixing the time to stop cleaning and return to the base
+  [ask vacuums [return-to-base] tick] ; fixing the time to stop cleaning and return to the base
   [
     ; select the moving function from the user choice
     if moving-function = "move-randomly-2" [
       ask vacuums [move-randomly-2]
+      tick
     ]
       if moving-function = "move-randomly" [
       ask vacuums [move-randomly]
+      tick
+    ]
+     if moving-function = "algo" [
+      ask vacuums [algo]
+
+      ifelse test1 != 0 [tick-advance test1 tick]  [tick-advance test2 tick]
+    ]
+    if moving-function = "walk" [
+      ask vacuums [walk]
+      tick
     ]
   ]
-  tick
+  if ticks > 2400 [stop]
 end
 
 
 
 to move-randomly-2
-  ;show patches in-radius 1.8 with [obstacle = 0]
-  ;show nodes-here
-  ;ask patches in-radius 1.8 with [obstacle = 0] [show nodes-here]
 
   set locations (patch-set)
 
@@ -108,8 +112,6 @@ to move-randomly-2
 
   let nl8 patches at-points [[-1 -1]]
   if not any? nodes-on nl8 [set locations (patch-set locations nl8) ]
-
-
 
   ifelse count locations with [obstacle = 0] > 0
   [
@@ -167,7 +169,6 @@ to maping-room
     ]]
     setup-network]
 
-  ;
   ask nodes in-radius 0 [set Ncleaning Ncleaning + 1]
 
   ;save the duste state of all place visited by the vacuum
@@ -178,7 +179,6 @@ end
 
 
 to clean
-
   ask patches in-radius 0 [
     if dust > 0 [set dust dust - 1]
   ]
@@ -188,12 +188,8 @@ to return-to-base
   ask nodes at-points [[0 0]] [set path-to-base nw:turtles-on-path-to one-of bases]
   face item 1 path-to-base
   move-to item 1 path-to-base
-  if length path-to-base < 3  [ print "rentré à la base"  ]
+  if length path-to-base < 3  [stop]
 end
-
-
-
-
 
 
 
@@ -220,40 +216,56 @@ end
 
 
 
+to algo
+  ifelse all? neighbors [ obstacle = 0 ]
+ [ move-spiral
+   move-randomly-2
+    maping-room
+  set test1 5]
+  [ walk
+ move-randomly-2
+   set test2 11]
 
-
-
-
-
-to move-randomly-or-stay
-  let target one-of nodes in-radius 1.5
-  move-to target
-  clean
 end
 
 
+to move-spiral
+  set heading 0
+  repeat 4 [
+    rt 90
+    fd 1
+    maping-room
+  ]
 
-
-to move-fd-or-left
-
-  ;let new-location nodes at-points [[1 1]]
-  let new-location one-of nodes with [(xcor = 1) and (ycor = 0)]
-
-  face new-location
-  move-to new-location
-  clean
-  set location new-location
 end
 
+to walk  ;; turtle procedure
+  ;; turn right if necessary
+  if not wall? (90 ) and wall? (135) [ rt 90 maping-room ]
+  ;; turn left if necessary (sometimes more than once)
+  while [wall? 0] [ lt 90 maping-room  ]
+  ;; move forward
+  ;;ifelse heading  = one-of [ 0 90 180 270 360 ]
+  ;;[ fd 1 ]
+  move-to patch-ahead 1
+  maping-room
+end
+
+to-report wall? [angle]  ;; turtle procedure
+  ;; note that angle may be positive or negative.  if angle is
+  ;; positive, the turtle looks right.  if angle is negative,
+  ;; the turtle looks left.
+  report grey = [pcolor] of patch-right-and-ahead angle 1
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
-210
-10
-848
-649
+238
+11
+821
+595
 -1
 -1
-30.0
+25.0
 1
 10
 1
@@ -263,10 +275,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--10
-10
--10
-10
+-11
+11
+-11
+11
 0
 0
 1
@@ -299,17 +311,17 @@ number_of_obstacles
 number_of_obstacles
 0
 max-pxcor * max-pycor * 2
-99.0
+150.0
 1
 1
 NIL
 HORIZONTAL
 
 BUTTON
-133
-55
-196
-88
+8
+183
+71
+216
 NIL
 Go
 T
@@ -323,39 +335,38 @@ NIL
 1
 
 PLOT
-9
-149
-195
-348
+16
+399
+202
+598
 cleanded vs not cleaned
 ticks
 number of point by state
 0.0
 10.0
 0.0
-10.0
+1.0
 true
 false
 "" ""
 PENS
-"default" 1.0 0 -13345367 true "" "plot count nodes with [color = blue]"
-"pen-1" 1.0 0 -13840069 true "" "plot count nodes with [color = green]"
+"default" 1.0 0 -13840069 true "" "plot count nodes / count patches with [obstacle = 0]"
 
 CHOOSER
-9
-95
-195
-140
+8
+97
+194
+142
 moving-function
 moving-function
-"move-randomly" "move-randomly-2"
-1
+"move-randomly" "move-randomly-2" "algo"
+2
 
 BUTTON
-11
-360
-74
-393
+130
+182
+193
+215
 NIL
 Go
 NIL
@@ -367,6 +378,17 @@ NIL
 NIL
 NIL
 1
+
+MONITOR
+127
+603
+201
+648
+% cleaning
+count nodes / count patches with [obstacle = 0]
+3
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -714,6 +736,37 @@ NetLogo 6.0.2
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
+<experiments>
+  <experiment name="experiment" repetitions="1000" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <go>go</go>
+    <metric>count nodes / count patches with [obstacle = 0]</metric>
+    <enumeratedValueSet variable="moving-function">
+      <value value="&quot;move-randomly&quot;"/>
+    </enumeratedValueSet>
+    <steppedValueSet variable="number_of_obstacles" first="0" step="10" last="150"/>
+  </experiment>
+  <experiment name="experiment" repetitions="1000" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <go>go</go>
+    <metric>count nodes / count patches with [obstacle = 0]</metric>
+    <enumeratedValueSet variable="moving-function">
+      <value value="&quot;move-randomly&quot;"/>
+      <value value="&quot;move-randomly-2&quot;"/>
+    </enumeratedValueSet>
+    <steppedValueSet variable="number_of_obstacles" first="0" step="25" last="150"/>
+  </experiment>
+  <experiment name="experiment" repetitions="10" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <go>go</go>
+    <metric>count nodes / count patches with [obstacle = 0]</metric>
+    <enumeratedValueSet variable="moving-function">
+      <value value="&quot;move-randomly&quot;"/>
+      <value value="&quot;move-randomly-2&quot;"/>
+    </enumeratedValueSet>
+    <steppedValueSet variable="number_of_obstacles" first="0" step="50" last="150"/>
+  </experiment>
+</experiments>
 @#$#@#$#@
 @#$#@#$#@
 default
